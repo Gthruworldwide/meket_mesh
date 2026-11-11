@@ -136,10 +136,10 @@ class _MeshSosScreenState extends ConsumerState<MeshSosScreen> {
                 ),
               ),
               _OutboxCard(outbox: outbox),
-              SectionHeader(
+              const SectionHeader(
                 title: 'آخر النداءات الواردة',
                 subtitle: 'كل نداء موقّع يصل عبر المش أو المحاكاة يظهر هنا.',
-                padding: const EdgeInsets.fromLTRB(4, 20, 4, 10),
+                padding: EdgeInsets.fromLTRB(4, 20, 4, 10),
               ),
               if (messages.isEmpty)
                 const TacticalCard(

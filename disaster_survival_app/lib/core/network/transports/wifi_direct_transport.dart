@@ -14,7 +14,10 @@ import 'mesh_transport.dart';
 /// أو عند غياب عتاد Wi-Fi Direct، ينتقل الناقل إلى حالة `unavailable`
 /// دون تعطيل بقية شبكة المش (BLE يبقى نشطاً).
 class WifiDirectTransport implements MeshTransport {
-  WifiDirectTransport({required this.pki, this.serviceId = 'com.resilienet.meket_mesh'});
+  WifiDirectTransport({
+    required this.pki,
+    this.serviceId = 'com.resilienet.meket_mesh',
+  });
 
   final PkiVerifier pki;
   final String serviceId;
@@ -200,7 +203,11 @@ class WifiDirectTransport implements MeshTransport {
     _peers.remove(endpointId);
   }
 
-  void _onEndpointFound(String endpointId, String endpointName, String serviceId) {
+  void _onEndpointFound(
+    String endpointId,
+    String endpointName,
+    String serviceId,
+  ) {
     // الاتصال تلقائياً عند الاكتشاف (P2P_CLUSTER).
     unawaited(
       Nearby()

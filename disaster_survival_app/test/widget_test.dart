@@ -227,10 +227,10 @@ void main() {
     });
 
     test('الحمولة تُنظّف النص وتستبعد الموقع غير الصالح', () {
-      final draft = SosDraft(
+      const draft = SosDraft(
         callsign: '  فريق 7  ',
         message: '  نحتاج ماءً  ',
-        fix: const GeoFix(latitude: 200, longitude: 46),
+        fix: GeoFix(latitude: 200, longitude: 46),
       );
       expect(draft.isValid, isTrue);
       expect(draft.hasLocation, isFalse);
@@ -241,10 +241,10 @@ void main() {
     });
 
     test('الحمولة تتضمن الموقع الصالح ودقته', () {
-      final draft = SosDraft(
+      const draft = SosDraft(
         callsign: 'فريق 7',
         message: 'نحتاج ماءً',
-        fix: const GeoFix(
+        fix: GeoFix(
           latitude: 24.7136,
           longitude: 46.6753,
           accuracyMeters: 12,

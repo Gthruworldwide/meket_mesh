@@ -37,6 +37,10 @@ jobs:
         working-directory: disaster_survival_app
         run: flutter analyze
 
+      - name: Format check
+        working-directory: disaster_survival_app
+        run: dart format --set-exit-if-changed .
+
       - name: Run tests
         working-directory: disaster_survival_app
         run: flutter test --reporter expanded

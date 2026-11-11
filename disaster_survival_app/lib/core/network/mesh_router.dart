@@ -24,10 +24,7 @@ class MeshRouter extends ChangeNotifier {
 
   List<MeshTransport> _defaultTransports() {
     final bleManager = MeshManager(dtn);
-    return [
-      BleTransport(bleManager),
-      WifiDirectTransport(pki: dtn.pki),
-    ];
+    return [BleTransport(bleManager), WifiDirectTransport(pki: dtn.pki)];
   }
 
   MeshStatus _status = MeshStatus.stopped;
@@ -49,7 +46,8 @@ class MeshRouter extends ChangeNotifier {
   bool get isAdvertising => _transports.any((t) => t.isAdvertising);
   bool get isScanning => _transports.any((t) => t.isScanning);
   bool get isSyncing => _syncing;
-  bool get isSimulation => _transports.isNotEmpty && _transports.every((t) => t.isSimulation);
+  bool get isSimulation =>
+      _transports.isNotEmpty && _transports.every((t) => t.isSimulation);
   DateTime? get lastSyncAt => _lastSyncAt;
   int get packetsRelayed => _packetsRelayed;
   int get packetsReceived => _packetsReceived;
@@ -111,7 +109,10 @@ class MeshRouter extends ChangeNotifier {
     if (anyOnline) {
       _setStatus(MeshStatus.online);
       _syncTimer?.cancel();
-      _syncTimer = Timer.periodic(const Duration(seconds: 18), (_) => unawaited(syncNow()));
+      _syncTimer = Timer.periodic(
+        const Duration(seconds: 18),
+        (_) => unawaited(syncNow()),
+      );
     } else if (anySim) {
       _setStatus(MeshStatus.simulation);
     } else {
@@ -233,4 +234,3 @@ final meshManagerProvider = Provider<MeshRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
-
