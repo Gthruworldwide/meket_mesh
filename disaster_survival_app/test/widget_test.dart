@@ -1,6 +1,10 @@
 import 'package:disaster_survival_app/core/constants/disaster_types.dart';
 import 'package:disaster_survival_app/core/network/dtn_packet_handler.dart';
+import 'package:disaster_survival_app/core/network/mesh_manager.dart';
+import 'package:disaster_survival_app/core/utils/pki_verifier.dart';
 import 'package:disaster_survival_app/features/medical_triage/services/offline_triage_engine.dart';
+import 'package:disaster_survival_app/features/mesh_network/models/mesh_link.dart';
+import 'package:disaster_survival_app/features/mesh_network/services/sos_draft.dart';
 import 'package:disaster_survival_app/features/offgrid_news/models/news_bulletin.dart';
 import 'package:disaster_survival_app/features/offgrid_news/services/rds_sdr_listener.dart';
 import 'package:disaster_survival_app/features/survival_checklists/models/equipment_item.dart';
@@ -153,6 +157,122 @@ void main() {
       expect(clone.isAcquired, isTrue);
       expect(clone.applicableDisasters, contains(DisasterCategory.flood));
       expect(clone.priorityLabel, 'حرج 72 ساعة');
+    });
+  });
+
+  group('شبكة المش', () {
+    test('تصنيف جودة الوصلة وأعمدة الإشارة', () {
+      expect(LinkQuality.fromRssi(-50), LinkQuality.excellent);
+      expect(LinkQuality.fromRssi(-65), LinkQuality.good);
+      expect(LinkQuality.fromRssi(-80), LinkQuality.fair);
+      expect(LinkQuality.fromRssi(-92), LinkQuality.weak);
+
+      final peer = MeshPeer(
+        nodeId: 'node-1',
+        remoteId: 'AA:BB:CC',
+        rssi: -65,
+        lastSeen: DateTime.now(),
+      );
+      final link = MeshNodeLink.fromPeer(peer);
+      expect(link.quality, LinkQuality.good);
+      expect(link.signalBars, 3);
+      expect(link.isSimulated, isFalse);
+      expect(link.lastSeenLabel, 'الآن');
+      expect(link.lastSyncLabel, 'لم تُزامَن بعد');
+    });
+
+    test('درجة صحة الشبكة تبلغ السقف وتصنّف الحالات', () {
+      final robust = MeshReadiness.evaluate(
+        peerCount: 6,
+        online: true,
+        simulation: false,
+        syncRounds: 9,
+        relayed: 5,
+        received: 5,
+      );
+      expect(robust.score, 100);
+      expect(robust.grade, MeshGrade.robust);
+      expect(robust.normalized, 1.0);
+
+      final idle = MeshReadiness.evaluate(
+        peerCount: 0,
+        online: false,
+        simulation: false,
+        syncRounds: 0,
+        relayed: 0,
+        received: 0,
+      );
+      expect(idle.score, 0);
+      expect(idle.grade, MeshGrade.critical);
+
+      final sim = MeshReadiness.evaluate(
+        peerCount: 2,
+        online: false,
+        simulation: true,
+        syncRounds: 1,
+        relayed: 1,
+        received: 0,
+      );
+      expect(sim.score, 38);
+      expect(sim.grade, MeshGrade.limited);
+    });
+  });
+
+  group('مسودة نداء الاستغاثة', () {
+    test('التحقق يرفض الاسم الفارغ والوصف القصير', () {
+      expect(SosDraft.validateCallsign('  '), isNotNull);
+      expect(SosDraft.validateMessage('ماء'), isNotNull);
+      expect(SosDraft.validateCallsign('فريق 7'), isNull);
+      expect(SosDraft.validateMessage('نحتاج ماءً وإسعافاً'), isNull);
+    });
+
+    test('الحمولة تُنظّف النص وتستبعد الموقع غير الصالح', () {
+      final draft = SosDraft(
+        callsign: '  فريق 7  ',
+        message: '  نحتاج ماءً  ',
+        fix: const GeoFix(latitude: 200, longitude: 46),
+      );
+      expect(draft.isValid, isTrue);
+      expect(draft.hasLocation, isFalse);
+      expect(draft.toPayload(), {
+        'callsign': 'فريق 7',
+        'message': 'نحتاج ماءً',
+      });
+    });
+
+    test('الحمولة تتضمن الموقع الصالح ودقته', () {
+      final draft = SosDraft(
+        callsign: 'فريق 7',
+        message: 'نحتاج ماءً',
+        fix: const GeoFix(
+          latitude: 24.7136,
+          longitude: 46.6753,
+          accuracyMeters: 12,
+        ),
+      );
+      expect(draft.hasLocation, isTrue);
+      expect(draft.toPayload()['lat'], 24.7136);
+      expect(draft.toPayload()['lng'], 46.6753);
+      expect(draft.fix!.accuracyLabel, 'دقة ±12 م');
+    });
+
+    test('بث SOS يوقّع الحزمة ويضعها في صندوق الصادر', () async {
+      final handler = DtnPacketHandler(pki: PkiVerifier());
+      final envelope = await handler.sendSos(
+        callsign: 'فريق 7',
+        message: 'نحتاج ماءً وإسعافاً',
+        lat: 24.7136,
+        lng: 46.6753,
+      );
+
+      expect(envelope.isSos, isTrue);
+      expect(envelope.signature, isNotNull);
+      expect(envelope.signerKey, isNotNull);
+      expect(envelope.payload['lat'], 24.7136);
+
+      final outbox = await handler.outboxEnvelopes();
+      expect(outbox.map((item) => item.msgId), contains(envelope.msgId));
+      handler.dispose();
     });
   });
 }

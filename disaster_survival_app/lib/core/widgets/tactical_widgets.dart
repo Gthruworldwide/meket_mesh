@@ -132,6 +132,65 @@ class StatusPill extends StatelessWidget {
   }
 }
 
+/// مربّع إحصائي صغير (قيمة + وصف + أيقونة) يُستخدم في لوحات الشبكة والجاهزية.
+class StatTile extends StatelessWidget {
+  const StatTile({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.width = 150,
+    this.iconColor,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final double width;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      width: width,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: scheme.onSurface.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: iconColor ?? scheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontSize: 9.5,
+                    color: scheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// شريط تقدّم مسمّى يُستخدم في تفصيل النقاط.
 class MetricBar extends StatelessWidget {
   const MetricBar({

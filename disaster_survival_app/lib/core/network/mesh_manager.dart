@@ -114,6 +114,7 @@ class MeshManager extends ChangeNotifier {
   String? get nodeId => _nodeId;
   bool get isAdvertising => _advertising;
   bool get isScanning => _scanning;
+  bool get isSyncing => _syncing;
   bool get isSimulation => _status == MeshStatus.simulation;
   DateTime? get lastSyncAt => _lastSyncAt;
   int get packetsRelayed => _packetsRelayed;

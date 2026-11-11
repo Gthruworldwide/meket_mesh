@@ -2,15 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/network/dtn_packet_handler.dart';
 import '../../../core/network/mesh_manager.dart';
-import '../../../core/state/app_settings.dart';
-import '../../../core/utils/local_store.dart';
 import '../../../core/widgets/red_night_toggle.dart';
 import '../../../core/widgets/tactical_widgets.dart';
+import '../../mesh_network/presentation/mesh_sos_screen.dart';
+import '../../mesh_network/presentation/sos_message_card.dart';
+import '../../mesh_network/services/sos_feed.dart';
 import '../models/device_score_model.dart';
 import '../services/hardware_assessor.dart';
 
@@ -307,22 +306,22 @@ class _MeshPanel extends ConsumerWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _StatBox(
+                  StatTile(
                     label: 'العقد المجاورة',
                     value: '${manager.peerCount}',
                     icon: Icons.devices_other,
                   ),
-                  _StatBox(
+                  StatTile(
                     label: 'حزم مُمرَّرة',
                     value: '${manager.packetsRelayed}',
                     icon: Icons.forward_to_inbox,
                   ),
-                  _StatBox(
+                  StatTile(
                     label: 'حزم مستلمة',
                     value: '${manager.packetsReceived}',
                     icon: Icons.download_for_offline_outlined,
                   ),
-                  _StatBox(
+                  StatTile(
                     label: 'دورات مزامنة',
                     value: '${manager.syncRounds}',
                     icon: Icons.sync,
@@ -424,59 +423,6 @@ class _MeshPanel extends ConsumerWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _StatBox extends StatelessWidget {
-  const _StatBox({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-      decoration: BoxDecoration(
-        color: scheme.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: scheme.outline.withValues(alpha: 0.6)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: scheme.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 9.5,
-                    color: scheme.onSurface.withValues(alpha: 0.55),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -630,59 +576,12 @@ class _ChecksPanel extends ConsumerWidget {
 
 // ── تدفق نداءات الاستغاثة ────────────────────────────────────────────────
 
-/// دمج نداءات SOS الواردة مع سجل صندوق الوارد المحفوظ.
-class SosFeedNotifier extends Notifier<List<SosMessage>> {
-  @override
-  List<SosMessage> build() {
-    ref.listen(incomingSosProvider, (previous, next) {
-      final message = next.value;
-      if (message != null) _merge(message);
-    });
-    return _seedFromInbox();
-  }
-
-  void _merge(SosMessage message) {
-    if (state.any(
-      (existing) =>
-          existing.originNodeId == message.originNodeId &&
-          existing.timestamp == message.timestamp &&
-          existing.message == message.message,
-    )) {
-      return;
-    }
-    final next = [message, ...state]
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    state = next.take(25).toList(growable: false);
-  }
-
-  List<SosMessage> _seedFromInbox() {
-    final messages = <SosMessage>[];
-    for (final raw in LocalStore.values(LocalStore.dtnInbox)) {
-      if (raw is! String) continue;
-      try {
-        final envelope = DtnEnvelope.decode(raw);
-        if (envelope.isSos) {
-          messages.add(SosMessage.fromEnvelope(envelope));
-        }
-      } catch (_) {}
-    }
-    messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    return messages.take(25).toList(growable: false);
-  }
-}
-
-final sosFeedProvider = NotifierProvider<SosFeedNotifier, List<SosMessage>>(
-  SosFeedNotifier.new,
-);
-
 class _SosPanel extends ConsumerWidget {
   const _SosPanel();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final messages = ref.watch(sosFeedProvider);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -696,7 +595,8 @@ class _SosPanel extends ConsumerWidget {
               foregroundColor: Colors.white,
               visualDensity: VisualDensity.compact,
             ),
-            onPressed: () => _openSosDialog(context, ref),
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const MeshSosScreen())),
             icon: const Icon(Icons.sos, size: 18),
             label: const Text('بث SOS'),
           ),
@@ -714,216 +614,10 @@ class _SosPanel extends ConsumerWidget {
           ...messages.map(
             (message) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: TacticalCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.sos,
-                          color: AppColors.danger,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            message.callsign,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        StatusPill(
-                          label: message.verified ? 'موقّع' : 'غير موثّق',
-                          color: message.verified
-                              ? AppColors.success
-                              : AppColors.warning,
-                          icon: message.verified
-                              ? Icons.verified
-                              : Icons.gpp_maybe,
-                          compact: true,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      message.message,
-                      style: theme.textTheme.bodyMedium?.copyWith(height: 1.6),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${message.timeAgo} · ${message.hops} قفزة · '
-                      '${message.originNodeId}',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurface.withValues(alpha: 0.55),
-                      ),
-                    ),
-                    if (message.lat != null && message.lng != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on_outlined,
-                            size: 13,
-                            color: scheme.primary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${message.lat!.toStringAsFixed(4)}, '
-                            '${message.lng!.toStringAsFixed(4)}',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: scheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+              child: SosMessageCard(message: message),
             ),
           ),
       ],
     );
-  }
-
-  Future<void> _openSosDialog(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final callsign = ref.read(callsignProvider);
-    final messageController = TextEditingController();
-    final callsignController = TextEditingController(text: callsign);
-    final formKey = GlobalKey<FormState>();
-    var sending = false;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setState) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.sos, color: AppColors.danger),
-              SizedBox(width: 8),
-              Text('بث نداء استغاثة'),
-            ],
-          ),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: callsignController,
-                    decoration: const InputDecoration(labelText: 'اسم النداء'),
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'أدخل اسم النداء'
-                        : null,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: messageController,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'وصف الحالة والموقع',
-                      hintText: 'مثال: محتجزون في الطابق الثالث، نحتاج ماءً وإسعافاً…',
-                    ),
-                    validator: (value) =>
-                        (value == null || value.trim().length < 5)
-                        ? 'اكتب وصفاً واضحاً (5 أحرف على الأقل)'
-                        : null,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'سيُوقَّع النداء بمفتاح الجهاز ويُبثّ عبر المش. '
-                    'قد يستغرق الوصول عدة دقائق حسب توفر العقد.',
-                    style: Theme.of(dialogContext).textTheme.labelSmall
-                        ?.copyWith(height: 1.5),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: sending
-                  ? null
-                  : () => Navigator.pop(dialogContext, false),
-              child: const Text('إلغاء'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
-              onPressed: sending
-                  ? null
-                  : () {
-                      if (!(formKey.currentState?.validate() ?? false)) return;
-                      setState(() => sending = true);
-                      Navigator.pop(dialogContext, true);
-                    },
-              child: Text(sending ? 'جارٍ البث…' : 'بث الآن'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed != true) {
-      messageController.dispose();
-      callsignController.dispose();
-      return;
-    }
-
-    final handler = ref.read(dtnPacketHandlerProvider);
-    final chosenCallsign = callsignController.text.trim();
-    final text = messageController.text.trim();
-    messageController.dispose();
-    callsignController.dispose();
-
-    ref.read(callsignProvider.notifier).set(chosenCallsign);
-
-    double? lat;
-    double? lng;
-    try {
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.always ||
-          permission == LocationPermission.whileInUse) {
-        final position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.low,
-            timeLimit: Duration(seconds: 6),
-          ),
-        );
-        lat = position.latitude;
-        lng = position.longitude;
-      }
-    } catch (_) {
-      // بدون موقع: يبقى النداء صالحاً بالنص فقط.
-    }
-
-    try {
-      await handler.sendSos(
-        callsign: chosenCallsign,
-        message: text,
-        lat: lat,
-        lng: lng,
-      );
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            lat == null
-                ? 'تم بث نداء الاستغاثة (بدون إحداثيات).'
-                : 'تم بث نداء الاستغاثة مع الموقع الحالي.',
-          ),
-        ),
-      );
-    } catch (error) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('تعذّر بث النداء: $error')),
-      );
-    }
   }
 }

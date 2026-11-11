@@ -8,6 +8,8 @@ import 'core/state/app_settings.dart';
 import 'core/utils/local_store.dart';
 import 'features/hardware_score/presentation/score_dashboard.dart';
 import 'features/medical_triage/presentation/triage_screen.dart';
+import 'features/mesh_network/presentation/mesh_sos_screen.dart';
+import 'features/mesh_network/services/sos_feed.dart';
 import 'features/offgrid_news/presentation/news_screen.dart';
 import 'features/survival_checklists/presentation/checklist_screen.dart';
 
@@ -66,6 +68,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   static const List<Widget> _screens = [
     ScoreDashboard(),
+    MeshSosScreen(),
     ChecklistScreen(),
     NewsScreen(),
     TriageScreen(),
@@ -99,14 +102,19 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         selectedIndex: _index,
         onDestinationSelected: (index) => setState(() => _index = index),
         destinations: [
+          const NavigationDestination(
+            icon: Icon(Icons.shield_outlined),
+            selectedIcon: Icon(Icons.shield),
+            label: 'الجاهزية',
+          ),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: sosCount > 0,
               label: Text('$sosCount'),
-              child: const Icon(Icons.shield_outlined),
+              child: const Icon(Icons.hub_outlined),
             ),
-            selectedIcon: const Icon(Icons.shield),
-            label: 'الجاهزية',
+            selectedIcon: const Icon(Icons.hub),
+            label: 'المش',
           ),
           const NavigationDestination(
             icon: Icon(Icons.backpack_outlined),
