@@ -600,6 +600,26 @@ class _NetworkOverview extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: manager.transports.map((t) {
+              final c = t.status == MeshStatus.online
+                  ? AppColors.success
+                  : t.status == MeshStatus.simulation
+                  ? AppColors.warning
+                  : t.status == MeshStatus.unavailable
+                  ? scheme.onSurface.withValues(alpha: 0.35)
+                  : AppColors.danger;
+              return StatusPill(
+                label: '${t.displayName} · ${t.status.label}',
+                color: c,
+                icon: t.id == 'ble' ? Icons.bluetooth : Icons.wifi,
+                compact: true,
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 10),
           Row(
             children: [
               Icon(
@@ -749,6 +769,12 @@ class _PeerCard extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
+                    StatusPill(
+                      label: _transportLabel(link.transportId),
+                      color: _transportColor(link.transportId),
+                      icon: _transportIcon(link.transportId),
+                      compact: true,
+                    ),
                     StatusPill(
                       label: '${link.rssi} dBm · ${link.quality.label}',
                       color: color,
@@ -969,4 +995,38 @@ String _clock(DateTime time) {
   final local = time.toLocal();
   String two(int value) => value.toString().padLeft(2, '0');
   return '${two(local.hour)}:${two(local.minute)}';
+}
+// ── مساعدات النواقل ─────────────────────────────────────────────────────
+
+Color _transportColor(String id) {
+  switch (id) {
+    case 'ble':
+      return AppColors.accent; // ذهبي
+    case 'wifi-direct':
+      return const Color(0xFF4FC3F7); // أزرق
+    default:
+      return AppColors.primary;
+  }
+}
+
+IconData _transportIcon(String id) {
+  switch (id) {
+    case 'ble':
+      return Icons.bluetooth;
+    case 'wifi-direct':
+      return Icons.wifi;
+    default:
+      return Icons.hub_outlined;
+  }
+}
+
+String _transportLabel(String id) {
+  switch (id) {
+    case 'ble':
+      return 'BLE';
+    case 'wifi-direct':
+      return 'Wi-Fi Direct';
+    default:
+      return id;
+  }
 }

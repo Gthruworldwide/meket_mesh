@@ -1,6 +1,8 @@
 import 'package:disaster_survival_app/core/constants/disaster_types.dart';
+import 'dart:typed_data';
 import 'package:disaster_survival_app/core/network/dtn_packet_handler.dart';
 import 'package:disaster_survival_app/core/network/mesh_manager.dart';
+import 'package:disaster_survival_app/core/network/transports/mesh_transport.dart';
 import 'package:disaster_survival_app/core/utils/pki_verifier.dart';
 import 'package:disaster_survival_app/features/medical_triage/services/offline_triage_engine.dart';
 import 'package:disaster_survival_app/features/mesh_network/models/mesh_link.dart';
@@ -275,4 +277,110 @@ void main() {
       handler.dispose();
     });
   });
+
+  group('موجّه المش (MeshRouter)', () {
+    FakeTransport mkTransport(String id, MeshStatus status, List<MeshPeer> peers) {
+      return FakeTransport(id: id, status: status, peers: peers);
+    }
+
+    test('يجمع العقد من النواقل دون تكرار (حسب nodeId)', () async {
+      final handler = DtnPacketHandler(pki: PkiVerifier());
+      final now = DateTime.now();
+      final t1 = mkTransport('ble', MeshStatus.online, [
+        MeshPeer(nodeId: 'A', remoteId: 'rA', rssi: -60, lastSeen: now, transportId: 'ble'),
+        MeshPeer(nodeId: 'B', remoteId: 'rB', rssi: -70, lastSeen: now, transportId: 'ble'),
+      ]);
+      final t2 = mkTransport('wifi-direct', MeshStatus.online, [
+        MeshPeer(nodeId: 'B', remoteId: 'rB2', rssi: -50, lastSeen: now, transportId: 'wifi-direct'),
+        MeshPeer(nodeId: 'C', remoteId: 'rC', rssi: -80, lastSeen: now, transportId: 'wifi-direct'),
+      ]);
+      final router = MeshRouter(dtn: handler, transports: [t1, t2]);
+      expect(router.peerCount, 3);
+      final ids = router.peers.map((p) => p.nodeId).toSet();
+      expect(ids, {'A', 'B', 'C'});
+      expect(router.peers.first.nodeId, 'A');
+      handler.dispose();
+      router.dispose();
+    });
+
+    test('الحالة online إذا أي ناقل online', () {
+      final handler = DtnPacketHandler(pki: PkiVerifier());
+      final t1 = mkTransport('ble', MeshStatus.stopped, []);
+      final t2 = mkTransport('wifi-direct', MeshStatus.online, []);
+      final router = MeshRouter(dtn: handler, transports: [t1, t2]);
+      expect(router.status, MeshStatus.online);
+      expect(router.isSimulation, isFalse);
+      handler.dispose();
+      router.dispose();
+    });
+
+    test('isSimulation true فقط إذا كل النواقل simulation', () {
+      final handler = DtnPacketHandler(pki: PkiVerifier());
+      final t1 = mkTransport('ble', MeshStatus.simulation, []);
+      final t2 = mkTransport('wifi-direct', MeshStatus.simulation, []);
+      final router = MeshRouter(dtn: handler, transports: [t1, t2]);
+      expect(router.isSimulation, isTrue);
+      handler.dispose();
+      router.dispose();
+    });
+
+    test('syncNow لا يرمي استثناء عند فشل ناقل', () async {
+      final handler = DtnPacketHandler(pki: PkiVerifier());
+      final t1 = mkTransport('ble', MeshStatus.online, []);
+      t1.throwOnSync = true;
+      final t2 = mkTransport('wifi-direct', MeshStatus.online, []);
+      final router = MeshRouter(dtn: handler, transports: [t1, t2]);
+      await expectLater(router.syncNow(), completes);
+      handler.dispose();
+      router.dispose();
+    });
+  });
+}
+
+class FakeTransport implements MeshTransport {
+  FakeTransport({required this.id, required this._status, required List<MeshPeer> peers})
+      : _peers = List.of(peers);
+
+  @override
+  final String id;
+  @override
+  String get displayName => id;
+  MeshStatus _status;
+  @override
+  MeshStatus get status => _status;
+  set status(MeshStatus v) => _status = v;
+  @override
+  String? lastError;
+  final List<MeshPeer> _peers;
+  @override
+  List<MeshPeer> get peers => _peers;
+  @override
+  int get peerCount => _peers.length;
+  @override
+  bool get isSimulation => _status == MeshStatus.simulation;
+  bool throwOnSync = false;
+  @override
+  bool get supportsSync => true;
+
+  @override
+  Future<void> init() async {}
+  @override
+  Future<void> start() async {}
+  @override
+  Future<void> stop() async {}
+  @override
+  Future<void> restart() async {}
+  @override
+  Future<void> send(_) async {}
+  @override
+  Future<void> syncNow() async {
+    if (throwOnSync) throw StateError('boom');
+  }
+
+  @override
+  bool isAdvertising = false;
+  @override
+  bool isScanning = false;
+  @override
+  void Function(Uint8List bytes, String fromNodeId)? onReceive;
 }

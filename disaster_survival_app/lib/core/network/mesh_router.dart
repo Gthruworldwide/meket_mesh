@@ -27,7 +27,6 @@ class MeshRouter extends ChangeNotifier {
     return [BleTransport(bleManager), WifiDirectTransport(pki: dtn.pki)];
   }
 
-  MeshStatus _status = MeshStatus.stopped;
   bool _initialized = false;
   bool _disposed = false;
   String? _lastError;
@@ -40,7 +39,16 @@ class MeshRouter extends ChangeNotifier {
 
   // ── خصائص عامة (متوافقة مع MeshManager) ──────────────────────────────
 
-  MeshStatus get status => _status;
+  MeshStatus get status {
+    if (_transports.any((t) => t.status == MeshStatus.online)) return MeshStatus.online;
+    if (_transports.any((t) => t.status == MeshStatus.simulation)) return MeshStatus.simulation;
+    if (_transports.any((t) => t.status == MeshStatus.starting)) return MeshStatus.starting;
+    if (_transports.any((t) => t.status == MeshStatus.error)) return MeshStatus.error;
+    if (_transports.isNotEmpty && _transports.every((t) => t.status == MeshStatus.unavailable)) {
+      return MeshStatus.unavailable;
+    }
+    return MeshStatus.stopped;
+  }
   String? get lastError => _lastError;
   String? get nodeId => _nodeId;
   bool get isAdvertising => _transports.any((t) => t.isAdvertising);
@@ -149,7 +157,7 @@ class MeshRouter extends ChangeNotifier {
 
   Future<void> syncNow() async {
     if (_disposed || _syncing) return;
-    if (_status == MeshStatus.stopped || _status == MeshStatus.error) return;
+    if (status == MeshStatus.stopped || status == MeshStatus.error) return;
 
     _syncing = true;
     _notify();
@@ -199,14 +207,8 @@ class MeshRouter extends ChangeNotifier {
   }
 
   void _setStatus(MeshStatus status) {
-    if (_status == status) {
-      _notify();
-      return;
-    }
-    _status = status;
     _notify();
   }
-
   void _notify() {
     if (_disposed) return;
     notifyListeners();
