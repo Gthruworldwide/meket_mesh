@@ -39,6 +39,7 @@ class MeshNodeLink {
     required this.lastSeen,
     this.lastSyncedAt,
     this.transportId = 'ble',
+    this.rssiEstimated = false,
   });
 
   factory MeshNodeLink.fromPeer(MeshPeer peer) => MeshNodeLink(
@@ -49,6 +50,7 @@ class MeshNodeLink {
     lastSeen: peer.lastSeen,
     lastSyncedAt: peer.lastSyncedAt,
     transportId: peer.transportId,
+    rssiEstimated: peer.rssiEstimated,
   );
 
   final String nodeId;
@@ -58,6 +60,7 @@ class MeshNodeLink {
   final DateTime lastSeen;
   final DateTime? lastSyncedAt;
   final String transportId;
+  final bool rssiEstimated;
 
   LinkQuality get quality => LinkQuality.fromRssi(rssi);
 

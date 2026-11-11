@@ -187,10 +187,11 @@ class WifiDirectTransport implements MeshTransport {
       _peers[endpointId] = MeshPeer(
         nodeId: endpointId,
         remoteId: endpointId,
-        rssi: 0,
+        rssi: -55,
         lastSeen: DateTime.now(),
         name: 'عقدة Wi-Fi Direct',
         transportId: id,
+        rssiEstimated: true,
       );
     } else {
       _connected.remove(endpointId);

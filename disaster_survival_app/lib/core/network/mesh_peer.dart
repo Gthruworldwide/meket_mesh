@@ -29,6 +29,7 @@ class MeshPeer {
     required this.lastSeen,
     this.name = 'عقدة ResiliNet',
     this.transportId = 'ble',
+    this.rssiEstimated = false,
   });
 
   final String nodeId;
@@ -37,6 +38,7 @@ class MeshPeer {
   DateTime lastSeen;
   String name;
   final String transportId;
+  final bool rssiEstimated;
 
   /// وقت آخر مزامنة ناجحة مع هذه العقدة.
   DateTime? lastSyncedAt;
