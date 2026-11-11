@@ -57,3 +57,7 @@ android/app/*.keystore
 android/build/
 android/.gradle/
 
+
+# Production signing (لا ترفع)
+android/key.properties.prod
+
