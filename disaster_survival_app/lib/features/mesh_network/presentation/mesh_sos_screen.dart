@@ -776,7 +776,8 @@ class _PeerCard extends StatelessWidget {
                       compact: true,
                     ),
                     StatusPill(
-                      label: '${link.rssiEstimated ? '≈' : ''}${link.rssi} dBm · ${link.quality.label}',
+                      label:
+                          '${link.rssiEstimated ? '≈' : ''}${link.rssi} dBm · ${link.quality.label}',
                       color: color,
                       icon: Icons.bluetooth,
                       compact: true,

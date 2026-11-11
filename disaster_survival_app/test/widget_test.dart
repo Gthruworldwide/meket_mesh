@@ -1,5 +1,7 @@
 import 'package:disaster_survival_app/core/constants/disaster_types.dart';
+
 import 'dart:typed_data';
+
 import 'package:disaster_survival_app/core/network/dtn_packet_handler.dart';
 import 'package:disaster_survival_app/core/network/mesh_manager.dart';
 import 'package:disaster_survival_app/core/network/transports/mesh_transport.dart';
@@ -246,11 +248,7 @@ void main() {
       const draft = SosDraft(
         callsign: 'فريق 7',
         message: 'نحتاج ماءً',
-        fix: GeoFix(
-          latitude: 24.7136,
-          longitude: 46.6753,
-          accuracyMeters: 12,
-        ),
+        fix: GeoFix(latitude: 24.7136, longitude: 46.6753, accuracyMeters: 12),
       );
       expect(draft.hasLocation, isTrue);
       expect(draft.toPayload()['lat'], 24.7136);
@@ -279,7 +277,11 @@ void main() {
   });
 
   group('موجّه المش (MeshRouter)', () {
-    FakeTransport mkTransport(String id, MeshStatus status, List<MeshPeer> peers) {
+    FakeTransport mkTransport(
+      String id,
+      MeshStatus status,
+      List<MeshPeer> peers,
+    ) {
       return FakeTransport(id: id, status: status, peers: peers);
     }
 
@@ -287,12 +289,36 @@ void main() {
       final handler = DtnPacketHandler(pki: PkiVerifier());
       final now = DateTime.now();
       final t1 = mkTransport('ble', MeshStatus.online, [
-        MeshPeer(nodeId: 'A', remoteId: 'rA', rssi: -60, lastSeen: now, transportId: 'ble'),
-        MeshPeer(nodeId: 'B', remoteId: 'rB', rssi: -70, lastSeen: now, transportId: 'ble'),
+        MeshPeer(
+          nodeId: 'A',
+          remoteId: 'rA',
+          rssi: -60,
+          lastSeen: now,
+          transportId: 'ble',
+        ),
+        MeshPeer(
+          nodeId: 'B',
+          remoteId: 'rB',
+          rssi: -70,
+          lastSeen: now,
+          transportId: 'ble',
+        ),
       ]);
       final t2 = mkTransport('wifi-direct', MeshStatus.online, [
-        MeshPeer(nodeId: 'B', remoteId: 'rB2', rssi: -50, lastSeen: now, transportId: 'wifi-direct'),
-        MeshPeer(nodeId: 'C', remoteId: 'rC', rssi: -80, lastSeen: now, transportId: 'wifi-direct'),
+        MeshPeer(
+          nodeId: 'B',
+          remoteId: 'rB2',
+          rssi: -50,
+          lastSeen: now,
+          transportId: 'wifi-direct',
+        ),
+        MeshPeer(
+          nodeId: 'C',
+          remoteId: 'rC',
+          rssi: -80,
+          lastSeen: now,
+          transportId: 'wifi-direct',
+        ),
       ]);
       final router = MeshRouter(dtn: handler, transports: [t1, t2]);
       expect(router.peerCount, 3);
@@ -338,8 +364,11 @@ void main() {
 }
 
 class FakeTransport implements MeshTransport {
-  FakeTransport({required this.id, required this._status, required List<MeshPeer> peers})
-      : _peers = List.of(peers);
+  FakeTransport({
+    required this.id,
+    required this._status,
+    required List<MeshPeer> peers,
+  }) : _peers = List.of(peers);
 
   @override
   final String id;

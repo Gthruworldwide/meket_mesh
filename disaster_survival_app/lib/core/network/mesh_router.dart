@@ -40,15 +40,25 @@ class MeshRouter extends ChangeNotifier {
   // ── خصائص عامة (متوافقة مع MeshManager) ──────────────────────────────
 
   MeshStatus get status {
-    if (_transports.any((t) => t.status == MeshStatus.online)) return MeshStatus.online;
-    if (_transports.any((t) => t.status == MeshStatus.simulation)) return MeshStatus.simulation;
-    if (_transports.any((t) => t.status == MeshStatus.starting)) return MeshStatus.starting;
-    if (_transports.any((t) => t.status == MeshStatus.error)) return MeshStatus.error;
-    if (_transports.isNotEmpty && _transports.every((t) => t.status == MeshStatus.unavailable)) {
+    if (_transports.any((t) => t.status == MeshStatus.online)) {
+      return MeshStatus.online;
+    }
+    if (_transports.any((t) => t.status == MeshStatus.simulation)) {
+      return MeshStatus.simulation;
+    }
+    if (_transports.any((t) => t.status == MeshStatus.starting)) {
+      return MeshStatus.starting;
+    }
+    if (_transports.any((t) => t.status == MeshStatus.error)) {
+      return MeshStatus.error;
+    }
+    if (_transports.isNotEmpty &&
+        _transports.every((t) => t.status == MeshStatus.unavailable)) {
       return MeshStatus.unavailable;
     }
     return MeshStatus.stopped;
   }
+
   String? get lastError => _lastError;
   String? get nodeId => _nodeId;
   bool get isAdvertising => _transports.any((t) => t.isAdvertising);
@@ -209,6 +219,7 @@ class MeshRouter extends ChangeNotifier {
   void _setStatus(MeshStatus status) {
     _notify();
   }
+
   void _notify() {
     if (_disposed) return;
     notifyListeners();
