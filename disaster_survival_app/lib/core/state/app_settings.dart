@@ -22,7 +22,22 @@ final redNightProvider = NotifierProvider<RedNightNotifier, bool>(
 );
 
 /// اسم النداء المحلي (Callsign) المستخدم في رسائل الاستغاثة.
-final callsignProvider = Provider<String>((ref) {
-  return LocalStore.get<String>(LocalStore.settingsBox, 'callsign') ??
+///
+/// يُحفظ محلياً ويُحدَّث عند تغييره من نموذج بث الاستغاثة.
+class CallsignNotifier extends Notifier<String> {
+  @override
+  String build() =>
+      LocalStore.get<String>(LocalStore.settingsBox, 'callsign') ??
       'مستجيب محلي';
-});
+
+  void set(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed == state) return;
+    state = trimmed;
+    LocalStore.write(LocalStore.settingsBox, 'callsign', trimmed);
+  }
+}
+
+final callsignProvider = NotifierProvider<CallsignNotifier, String>(
+  CallsignNotifier.new,
+);

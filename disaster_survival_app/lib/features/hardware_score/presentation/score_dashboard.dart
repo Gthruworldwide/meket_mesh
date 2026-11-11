@@ -880,7 +880,7 @@ class _SosPanel extends ConsumerWidget {
     messageController.dispose();
     callsignController.dispose();
 
-    await LocalStore.write(LocalStore.settingsBox, 'callsign', chosenCallsign);
+    ref.read(callsignProvider.notifier).set(chosenCallsign);
 
     double? lat;
     double? lng;
