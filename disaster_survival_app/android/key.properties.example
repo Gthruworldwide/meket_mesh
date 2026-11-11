@@ -1,0 +1,5 @@
+# نسخة نموذجية — انسخ إلى android/key.properties وأدخل قيمك (لا ترفع key.properties إلى Git).
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=meket
+storeFile=meket-release.jks
