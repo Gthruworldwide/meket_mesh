@@ -6,53 +6,13 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'dtn_packet_handler.dart';
+import 'mesh_peer.dart';
 
-/// حالة طبقة النقل في شبكة المش.
-enum MeshStatus { stopped, starting, online, simulation, error }
-
-extension MeshStatusX on MeshStatus {
-  String get label {
-    switch (this) {
-      case MeshStatus.stopped:
-        return 'متوقفة';
-      case MeshStatus.starting:
-        return 'جارٍ التشغيل';
-      case MeshStatus.online:
-        return 'مش BLE نشطة';
-      case MeshStatus.simulation:
-        return 'وضع محاكاة';
-      case MeshStatus.error:
-        return 'تعذّر تشغيل البلوتوث';
-    }
-  }
-}
-
-/// عقدة مجاورة مكتشفة عبر البلوتوث.
-class MeshPeer {
-  MeshPeer({
-    required this.nodeId,
-    required this.remoteId,
-    required this.rssi,
-    required this.lastSeen,
-    this.name = 'عقدة ResiliNet',
-  });
-
-  final String nodeId;
-  String remoteId;
-  int rssi;
-  DateTime lastSeen;
-  String name;
-
-  /// وقت آخر مزامنة ناجحة مع هذه العقدة.
-  DateTime? lastSyncedAt;
-
-  bool get isFresh =>
-      DateTime.now().difference(lastSeen) < const Duration(minutes: 2);
-}
+export 'mesh_peer.dart';
+export 'mesh_router.dart';
 
 /// إدارة شبكة المش اللامركزية عبر BLE.
 ///
@@ -645,11 +605,4 @@ class _FrameReassembler {
   }
 }
 
-/// مزوّد مدير المش. يربط معالج DTN بطبقة النقل تلقائياً.
-final meshManagerProvider = Provider<MeshManager>((ref) {
-  final handler = ref.watch(dtnPacketHandlerProvider);
-  final manager = MeshManager(handler);
-  handler.attachBroadcast(manager.broadcastEnvelope);
-  ref.onDispose(manager.dispose);
-  return manager;
-});
+// ── مزوّد MeshRouter (في mesh_router.dart) ──────────────────────────────

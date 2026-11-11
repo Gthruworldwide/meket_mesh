@@ -478,7 +478,7 @@ class _NetworkOverview extends StatelessWidget {
     required this.onSync,
   });
 
-  final MeshManager manager;
+  final MeshRouter manager;
   final MeshReadiness readiness;
   final Future<void> Function() onSync;
 
@@ -940,6 +940,8 @@ Color _statusColor(MeshStatus status, ColorScheme scheme) {
       return AppColors.accent;
     case MeshStatus.stopped:
       return scheme.onSurface.withValues(alpha: 0.5);
+    case MeshStatus.unavailable:
+      return scheme.onSurface.withValues(alpha: 0.35);
   }
 }
 

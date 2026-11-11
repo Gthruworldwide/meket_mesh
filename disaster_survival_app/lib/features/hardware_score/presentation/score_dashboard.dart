@@ -276,6 +276,7 @@ class _MeshPanel extends ConsumerWidget {
           MeshStatus.error => AppColors.danger,
           MeshStatus.starting => AppColors.accent,
           MeshStatus.stopped => scheme.onSurface.withValues(alpha: 0.5),
+          MeshStatus.unavailable => scheme.onSurface.withValues(alpha: 0.35),
         };
 
         return TacticalCard(
